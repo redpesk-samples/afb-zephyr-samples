@@ -8,4 +8,4 @@ list(APPEND EXTRA_ZEPHYR_MODULES "$ENV{HOME}/zephyrproject/afb-zephyr")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(afb-local)
 
-target_sources(app PRIVATE src/main.c src/zafb-helpers.c)
+target_sources(app PRIVATE src/main.c)
