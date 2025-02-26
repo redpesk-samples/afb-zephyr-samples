@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 
-#include "zafb-helpers.h"
+#include <zafb-helpers.h>
 
 #include <sys/rp-verbose.h>
 #include <afb-v4.h>
@@ -123,18 +123,18 @@ void start(int signum, void* arg)
 
 	RP_INFO("API tuto0 call API tuto1 hello verb with arg \"zephyr\"");
 	afb_create_data_raw(&reply, AFB_PREDEFINED_TYPE_STRINGZ, "zephyr", 7, NULL, NULL);
-	afb_api_call(tuto1, "tuto0", "hello", 1, &reply, onrep, NULL);
+	afb_api_call(tuto0, "tuto1", "hello", 1, &reply, onrep, NULL);
 
 	k_sleep(K_MSEC(1000));
 
 	RP_INFO("API tuto1 call API tuto0 hello verb with arg \"zephyr\"");
 	afb_create_data_raw(&reply, AFB_PREDEFINED_TYPE_STRINGZ, "zephyr", 7, NULL, NULL);
-	afb_api_call(tuto0, "tuto1", "hello", 1, &reply, onrep, NULL);
+	afb_api_call(tuto1, "tuto0", "hello", 1, &reply, onrep, NULL);
 }
 
 static void run_afb()
 {
-	rp_set_logmask(-1);
+	rp_set_logmask(rp_Log_Mask_Debug);
 	afb_ev_mgr_init();
 	afb_sched_start(1, 1, 30, start, NULL);
 }
