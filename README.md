@@ -43,6 +43,13 @@ This example shows periodical call to the verb of an API being on remote server.
 
 This example needs a board with an IP connection.
 
+### remote-io-control
+
+This example show implementing an API that controls the state
+of a led and that sends event when user button is pressed.
+
+This example needs a board with an IP connection, a led
+and a user button.
 
 ## Build and flash a sample
 
