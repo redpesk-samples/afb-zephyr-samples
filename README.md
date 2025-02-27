@@ -1,5 +1,6 @@
 # afb-zephyr-samples
 
+
 This repository is containing samples showing how to use the zephyr 
 module `afb-zephyr`.
 
@@ -21,27 +22,27 @@ they can be found [here][4].
 You can find it's zephyr compatibility table and installation guide at
 [here][1].
 
+
 ## Samples explanation
 
-Available samples:
+The given samples are intended to show several aspect of integration of the
+framework in zephyr.
 
-| Path           | Needed features  | Sample use case                                                         |
-| -------------- | ---------------- | ----------------------------------------------------------------------- |
-| dual-local-api | None (any board) | Two local APIs are calling for each other "hello" verb and answer calls |
+Each of this example is in its own directory and has a README file.
 
 ### dual-local-api
 
-The `dual-local-api` sample is a well commented application taking advantage 
-of the Application Framework Binder as simply as possible.
+This example shows communication between 2 micro service's APIs,
+each one calling hello of the other.
 
-It's deploying two identical local APIs (tuto0 & tuto1) calling for each 
-other verb.
+This example doesn't need any specific board.
 
-**Output**
+### call-extern-api
 
-```bash
+This example shows periodical call to the verb of an API being on remote server.
 
-```
+This example needs a board with an IP connection.
+
 
 ## Build and flash a sample
 
