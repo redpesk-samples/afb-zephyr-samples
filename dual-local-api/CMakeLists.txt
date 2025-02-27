@@ -14,5 +14,5 @@ list(APPEND EXTRA_ZEPHYR_MODULES "$ENV{AFB_ZEPHYR_DIR}")
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 # set project
-project(afb-local)
+project(dual-local-api)
 target_sources(app PRIVATE src/main.c)
