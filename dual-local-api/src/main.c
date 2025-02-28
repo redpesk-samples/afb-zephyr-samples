@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log_ctrl.h>
 
 #include <afb-v4.h>
 
@@ -149,12 +150,11 @@ static void onrep(
 /* start routine called once scheduler started.
  * 'signum' is always zero on Zephyr.
  * 'arg' is the closure argument given to 'afb_sched_start' */
-void start(int signum, void* arg)
+void start()
 {
 	afb_data_t data;
 
-	/* show step */
-	RP_INFO("Entering start arg=%s", (const char*)arg);
+	while(LOG_PROCESS());
 
 	/* declaration of APIs */
 	RP_INFO("Adding APIs ...");
@@ -163,7 +163,8 @@ void start(int signum, void* arg)
 
 	/* start of APIs */
 	RP_INFO("Starting APIs ...");
-	zafb_start();
+	zafb_start_all_api();
+	while(LOG_PROCESS());
 
 	/* sample internal call */
 	RP_INFO("API tuto0 call API tuto1 hello verb with arg \"tuto-0\"");
@@ -181,19 +182,16 @@ void start(int signum, void* arg)
 
 	/* end */
 	RP_INFO("end of start");
+	while(LOG_PROCESS());
 }
 
 /* start program */
 int main(void)
 {
+	LOG_INIT();
 	/* set the log mask to higher verbosity (optional) */
 	rp_set_logmask(rp_Log_Mask_Debug);
 	/* start AFB scheduler */
-	return afb_sched_start(
-		1 /* started count of threads */,
-		1 /* maximum count of threads */,
-		30 /* maximum count of jobs */,
-		start /* start callback */,
-		"*start-closure*" /* argument to the callback */);
+	zafb_start(start, 30, 4, 1);
 }
 
