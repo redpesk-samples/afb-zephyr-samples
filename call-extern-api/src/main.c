@@ -47,17 +47,19 @@
 /**********************************************************************/
 /**********************************************************************/
 
+/* config of the blinking led */
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED_NODE, gpios);
 
+/* state of the led and counter of occurences */
 uint8_t  state = 0;
 uint32_t counter = 0;
 
+/* pre allocated data for the state and the counter */
 afb_data_t state_data;
 afb_data_t counter_data;
-struct ev_timer *timer;
 
-afb_api_t global;
-
+#if !IGNORE_RESPONSE
+/* handle the response of the server */
 static void on_reply_cb(
 		void *closure,
 		int status,
@@ -65,14 +67,19 @@ static void on_reply_cb(
 		afb_data_t const replies[],
 		afb_api_t api)
 {
-	afb_data_t name;
-	int rc = afb_data_convert(replies[0], AFB_PREDEFINED_TYPE_STRINGZ, &name);
+	/* get the first data as a string */
+	afb_data_t name = NULL;
+	int rc = nreplies ? afb_data_convert(replies[0], AFB_PREDEFINED_TYPE_STRINGZ, &name) : -1;
 	const char *str = rc >= 0 ? afb_data_ro_pointer(name) : "?";
+	/* print status and data */
 	RP_INFO("replied %d, %s", rc, str);
+	/* release the data */
 	afb_data_unref(name);
 }
+#endif
 
-void timer_cb(struct ev_timer *timer, void *closure, unsigned decount)
+/* timer callback called every 500 ms */
+void timer_cb(afb_timer_t *timer, void *closure, unsigned decount)
 {
 	afb_data_t data[2];
 	int st;
@@ -86,11 +93,13 @@ void timer_cb(struct ev_timer *timer, void *closure, unsigned decount)
 	if (st < 0)
 		RP_ERROR("set led failed %d\n", st);
 
-	/* send the counter and the state */
+	/* send the counter and the state
+	 * here we use a trick to not always recreate the data */
 	counter++;
 	data[0] = afb_data_addref(state_data);
 	data[1] = afb_data_addref(counter_data);
 
+	/* send the request to the server */
 	afb_api_call(zafb_root_api(), "extern", "ping", 2, data,
 #if IGNORE_RESPONSE
 			NULL, NULL);
@@ -99,9 +108,11 @@ void timer_cb(struct ev_timer *timer, void *closure, unsigned decount)
 #endif
 }
 
+/* setup the demo inside framework start */
 void start(int signum, void* arg)
 {
 	int rc;
+	afb_timer_t timer;
 
 	RP_INFO("STARTING START");
 
@@ -124,10 +135,7 @@ void start(int signum, void* arg)
 	}
 
 	/* create the client link */
-	rc = afb_api_rpc_add_client_strong(
-			"tcp:"SERVER_IP":"SERVER_PORT"/extern",
-			zafb_apiset(),
-			zafb_apiset());
+	rc = zafb_add_rpc_client( "tcp:"SERVER_IP":"SERVER_PORT"/extern");
 	if (rc < 0) {
 		RP_CRITICAL("not able to create the data for counter: %d", rc);
 		zafb_exit(rc);
@@ -135,7 +143,7 @@ void start(int signum, void* arg)
 	}
 
 	/* create the timer */
-	rc = afb_ev_mgr_add_timer(
+	rc = afb_timer_create(
 		&timer,
 		0, /* absolute */
 		0, /* start sec */
