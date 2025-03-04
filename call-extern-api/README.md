@@ -16,7 +16,7 @@ lines 15 to 40. The values to setup are:
 
 - SERVER\_IP: IP of the server as a string
 - SERVER\_PORT: port of the service as a string
-- LED\_NODE: indication of the led, deends on the board
+- LED\_NODE: indication of the led, depends on the board
 - IGNORE\_RESPONSE: boolean incading if response is ignored or not
 
 This example also needs the server API to run. This can be done using the
