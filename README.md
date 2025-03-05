@@ -51,6 +51,14 @@ of a led and that sends event when user button is pressed.
 This example needs a board with an IP connection, a led
 and a user button.
 
+### llext-modules
+
+This example show implementing two API built as LLEXT. These API
+are simply reply to hello.
+
+This example needs a board with an IP connection.
+
+
 ## Build and flash a sample
 
 1. Install zephyr and `afb-zephyr` module
