@@ -13,4 +13,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 # set project
 project(remote-io-control)
-target_sources(app PRIVATE src/main.c src/dhcp.c)
+target_sources(app PRIVATE src/main.c ../common/dhcp.c)
