@@ -79,7 +79,7 @@ static void on_reply_cb(
 #endif
 
 /* timer callback called every 500 ms */
-void timer_cb(afb_timer_t *timer, void *closure, unsigned decount)
+void timer_cb(afb_timer_t timer, void *closure, unsigned decount)
 {
 	afb_data_t data[2];
 	int st;
