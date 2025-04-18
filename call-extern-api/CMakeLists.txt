@@ -16,4 +16,6 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 # set project
 project(call-extern-api)
 target_sources(app PRIVATE src/main.c ../common/dhcp.c)
-
+if (CONFIG_MBEDTLS)
+   generate_inc_file_for_target(app src/cert.der ${ZEPHYR_BINARY_DIR}/include/generated/cert.h)
+endif()

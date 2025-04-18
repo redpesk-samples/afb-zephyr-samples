@@ -39,6 +39,12 @@
 #define IGNORE_RESPONSE 0
 #endif
 
+#if CONFIG_AFB_MBEDTLS
+static uint8_t trust[] = {
+#	include "cert.h"
+};
+#endif
+
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
@@ -67,12 +73,25 @@ static void on_reply_cb(
 		afb_data_t const replies[],
 		afb_api_t api)
 {
+	static int dcpt = 0;
 	/* get the first data as a string */
 	afb_data_t name = NULL;
 	int rc = nreplies ? afb_data_convert(replies[0], AFB_PREDEFINED_TYPE_STRINGZ, &name) : -1;
 	const char *str = rc >= 0 ? afb_data_ro_pointer(name) : "?";
 	/* print status and data */
-	RP_INFO("replied %d, %s", rc, str);
+	if (status >= 0) {
+		dcpt = 0;
+		RP_INFO("replied %d, %d, %s", status, rc, str);
+	}
+	else {
+		dcpt++;
+		if (dcpt < 10)
+			RP_ERROR("replied %d, %d, %s", status, rc, str);
+		else if (dcpt == 10)
+			RP_ERROR("too much error, stop reporting");
+		else
+			dcpt = 11;
+	}
 	/* release the data */
 	afb_data_unref(name);
 }
@@ -134,8 +153,20 @@ void start(int signum, void* arg)
 		return;
 	}
 
+#if CONFIG_AFB_MBEDTLS
+	rc = zafb_tls_add_trust_list(trust, sizeof trust);
+	if (rc < 0) {
+		RP_CRITICAL("not able to set trusted certificate(s): %d", rc);
+		zafb_exit(rc);
+		return;
+	}
+#  define TLS "tls+"
+#else
+#  define TLS
+#endif
+
 	/* create the client link */
-	rc = zafb_add_rpc_client( "tcp:"SERVER_IP":"SERVER_PORT"/extern");
+	rc = zafb_add_rpc_client(TLS"tcp:"SERVER_IP":"SERVER_PORT"/extern");
 	if (rc < 0) {
 		RP_CRITICAL("not able to create the data for counter: %d", rc);
 		zafb_exit(rc);

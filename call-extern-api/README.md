@@ -116,6 +116,10 @@ HOOK: [req-000008:hello/ping] END
 ...
 ```
 
+## Adding TLS
 
+
+
+-DEXTRA_CONF_FILE=overlay-tls.conf
 
 [1]: https://docs.redpesk.bzh/docs/en/master/getting_started/host-configuration/docs/1-Setup-your-build-host.html
