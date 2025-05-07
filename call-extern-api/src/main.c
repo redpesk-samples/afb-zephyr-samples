@@ -44,7 +44,7 @@
 #define MTLS 1
 #endif
 
-#if CONFIG_AFB_MBEDTLS
+#if CONFIG_AFB_ZEPHYR_MBEDTLS
 static uint8_t trust[] = {
 #	include "trust.h"
 };
@@ -166,7 +166,7 @@ void start(int signum, void* arg)
 		return;
 	}
 
-#if CONFIG_AFB_MBEDTLS
+#if CONFIG_AFB_ZEPHYR_MBEDTLS
 	rc = zafb_tls_add_trust_list(trust, sizeof trust);
 	if (rc < 0) {
 		RP_CRITICAL("not able to set trusted certificate(s): %d", rc);
