@@ -1,6 +1,6 @@
 # call-extern-api
 
-This example does the below things: 
+This example does the things below:
 
 - initialize DHCP and wait until it is completed
 - initialize GPIO and preallocate data
@@ -12,12 +12,14 @@ This example does the below things:
   * if reply is expected, print the reply of the request
 
 This example should be configured. This is done in files `main.c`
-lines 15 to 40. The values to setup are:
+lines 15 to 45. The values to setup are:
 
 - SERVER\_IP: IP of the server as a string
 - SERVER\_PORT: port of the service as a string
 - LED\_NODE: indication of the led, depends on the board
-- IGNORE\_RESPONSE: boolean incading if response is ignored or not
+- IGNORE\_RESPONSE: boolean indicating if response is ignored or not
+- MTLS: boolean indicating if, when doing TLS, the certificate
+  verification should be mutual or not
 
 This example also needs the server API to run. This can be done using the
 binder and the binding tutorial hello4. Here are the step to follow.

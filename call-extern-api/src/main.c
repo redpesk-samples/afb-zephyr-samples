@@ -39,10 +39,23 @@
 #define IGNORE_RESPONSE 0
 #endif
 
+/* configure TLS or MTLS*/
+#if !defined(MTLS)
+#define MTLS 1
+#endif
+
 #if CONFIG_AFB_MBEDTLS
 static uint8_t trust[] = {
-#	include "cert.h"
+#	include "trust.h"
 };
+# 	if MTLS
+static uint8_t cert[] = {
+#       include "cert.h"
+};
+static uint8_t key[] = {
+#		include "key.h"
+};
+#	endif
 #endif
 
 /**********************************************************************/
@@ -160,7 +173,24 @@ void start(int signum, void* arg)
 		zafb_exit(rc);
 		return;
 	}
-#  define TLS "tls+"
+#  if MTLS
+#    define TLS "mtls+"
+	rc = zafb_tls_set_certificate(cert, sizeof cert);
+	if (rc < 0) {
+		RP_CRITICAL("not able to set certificate: %d", rc);
+		zafb_exit(rc);
+		return;
+	}
+
+	rc = zafb_tls_set_private_key(key, sizeof key);
+	if (rc < 0) {
+		RP_CRITICAL("not able to set private key: %d", rc);
+		zafb_exit(rc);
+		return;
+	}
+#  else
+#    define TLS "tls+"
+#  endif
 #else
 #  define TLS
 #endif
