@@ -196,7 +196,7 @@ void start(int signum, void* arg)
 #endif
 
 	/* create the client link */
-	rc = zafb_add_rpc_client(TLS"tcp:"SERVER_IP":"SERVER_PORT"/extern");
+	rc = zafb_add_rpc_client(TLS"tcp:"SERVER_IP":"SERVER_PORT"/extern?host");
 	if (rc < 0) {
 		RP_CRITICAL("not able to create the data for counter: %d", rc);
 		zafb_exit(rc);

@@ -1,6 +1,8 @@
 #!/bin/sh
 
 set -x
-openssl req -x509 -days 3000 -newkey rsa:4096 -noenc -keyout key.pem -out cert.pem
+set -e
+openssl ecparam -out key.pem -name prime256v1 -genkey
+openssl req -new -key key.pem -x509 -nodes -days 3650 -out cert.pem
 openssl x509 -in cert.pem -outform DER -out cert.der
-openssl rsa -in key.pem -outform DER -out key.der
+openssl pkey -in key.pem -outform DER -out key.der
