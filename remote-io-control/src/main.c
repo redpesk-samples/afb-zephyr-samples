@@ -42,29 +42,39 @@ enum { edge_falling = 1, edge_rising = 2, edge_any = 3 } edge = edge_any;
 afb_event_t evt_button = NULL;
 afb_event_t evt_led = NULL;
 
-/* utility function */
-static bool matchstr(const char *value, const char *patterns)
+/* utility function for unquoting string */
+static void unquote(const char **pstr, size_t *plenstr)
 {
-	int i;
-	while(*patterns) {
-		for (i = 0 ; ; i++) {
+	if (*plenstr >= 2 && (*pstr)[0] == '"' && (*pstr)[*plenstr - 1] == '"') {
+		(*pstr)++;
+		(*plenstr) -= 2;
+	}
+}
+
+/* utility function for matching value  */
+static bool matchstr(const char *value, size_t lenvalue, const char *patterns)
+{
+	size_t i = 0;
+	for (;;) {
+		if (i == lenvalue) {
+			if (*patterns == 0)
+				return true;
+		}
+		else {
 			char v = value[i];
-			char p = patterns[i];
-			if (p == 0) {
-				if (v == 0)
-					return true;
-				break;
-			}
 			if (v >= 'A' && v <= 'Z')
 				v += 'a' - 'A';
-			if (v != p)
-				break;
+			if (v == *patterns) {
+				i++;
+				patterns++;
+				continue;
+			}
 		}
-		while (patterns[i] != 0)
-			i++;
-		patterns = &patterns[i + 1];
+		while (*patterns++ != 0);
+		if (*patterns == 0)
+			return false;
+		i = 0;
 	}
-	return false;
 }
 
 /* get the led value */
@@ -99,21 +109,22 @@ static void set_led_bool(bool value)
 }
 
 /* set led from string */
-static void set_led_string(const char *value)
+static void set_led_string(const char *value, size_t lenvalue)
 {
-	static char texts_on[] = "1\0on\0yes\0true\0\0";
-	static char texts_off[] = "0\0off\0no\0false\0\0";
-	static char texts_toggle[] = "toggle\0invert\0\0";
+	static char texts_on[] = "1\0on\0yes\0true\0";
+	static char texts_off[] = "0\0off\0no\0false\0";
+	static char texts_toggle[] = "toggle\0invert\0";
 
 	if (strcmp(value, "null") == 0)
 		return;
 
+	unquote(&value, &lenvalue);
 	RP_INFO("setting led for %s", value);
-	if (matchstr(value, texts_on))
+	if (matchstr(value, lenvalue, texts_on))
 		set_led_bool(true);
-	else if (matchstr(value, texts_off))
+	else if (matchstr(value, lenvalue, texts_off))
 		set_led_bool(false);
-	else if (matchstr(value, texts_toggle))
+	else if (matchstr(value, lenvalue, texts_toggle))
 		set_led_bool(!get_led());
 	else
 		RP_WARNING("unknown led %s", value);
@@ -147,54 +158,58 @@ void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t
 }
 
 /* set led from string */
-static void set_edge_string(const char *value)
+static void set_edge_string(const char *value, size_t lenvalue)
 {
-	static char texts_falling[] = "falling\0fall\0down\0\0";
-	static char texts_rising[]  = "rising\0rise\0up\0\0";
-	static char texts_any[]     = "both\0any\0\0";
+	static char texts_falling[] = "falling\0fall\0down\0";
+	static char texts_rising[]  = "rising\0rise\0up\0";
+	static char texts_any[]     = "both\0any\0";
 
 	if (strcmp(value, "null") == 0)
 		return;
 
+	unquote(&value, &lenvalue);
 	RP_INFO("setting edge for %s", value);
-	if (matchstr(value, texts_falling))
+	if (matchstr(value, lenvalue, texts_falling))
 		edge = edge_falling;
-	else if (matchstr(value, texts_rising))
+	else if (matchstr(value, lenvalue, texts_rising))
 		edge = edge_rising;
-	else if (matchstr(value, texts_any))
+	else if (matchstr(value, lenvalue, texts_any))
 		edge = edge_any;
 	else
 		RP_WARNING("unknown edge %s", value);
 }
 
 /* set events from string */
-static void set_events_string(afb_req_t req, const char *value)
+static void set_events_string(afb_req_t req, const char *value, size_t lenvalue)
 {
-	static char texts_both[] = "*\0all\0both\0\0";
-	static char texts_led[] = "led\0\0";
-	static char texts_button[] = "button\0\0";
+	static char texts_both[] = "*\0all\0both\0";
+	static char texts_led[] = "led\0";
+	static char texts_button[] = "button\0";
 
 	int rc;
 	bool add = false, sub = false;
 	bool led = false, but = false;
 
+	unquote(&value, &lenvalue);
 	AFB_REQ_INFO(req, "setting event for %s", value);
 	if (*value == '+') {
 		add = true;
 		value++;
+		lenvalue--;
 	}
 	else if (*value == '-') {
 		sub = true;
 		value++;
+		lenvalue--;
 	}
 	else
 		add = true;
 
-	if (*value == 0 || matchstr(value, texts_both))
+	if (*value == 0 || matchstr(value, lenvalue, texts_both))
 		led = but = true;
-	else if (matchstr(value, texts_led))
+	else if (matchstr(value, lenvalue, texts_led))
 		led = true;
-	else if (matchstr(value, texts_button))
+	else if (matchstr(value, lenvalue, texts_button))
 		but = true;
 	else
 		RP_WARNING("unknown event %s", value);
@@ -235,18 +250,20 @@ static void led_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *param
 
 	if (nparams > 0) {
 		/* interpret first parameter */
+		size_t size;
+		void *mem;
 		afb_data_t arg0 = params[0];
-		const void *mem = afb_data_ro_pointer(arg0);
 		afb_type_t type = afb_data_type(arg0);
+		afb_data_get_constant(arg0, &mem, &size);
 		if (type == AFB_PREDEFINED_TYPE_BOOL)
 			set_led_bool((bool)*(uint8_t*)mem);
 		else if (type == AFB_PREDEFINED_TYPE_I32
 			|| type == AFB_PREDEFINED_TYPE_U32)
 			set_led_bool((bool)*(uint32_t*)mem);
-		else if (type == AFB_PREDEFINED_TYPE_STRINGZ)
-			set_led_string((const char *)mem);
-		else if (type == AFB_PREDEFINED_TYPE_JSON)
-			set_led_string((const char *)mem);
+		else if (type == AFB_PREDEFINED_TYPE_STRINGZ && size > 0)
+			set_led_string((const char *)mem, size - 1);
+		else if (type == AFB_PREDEFINED_TYPE_JSON && size > 0)
+			set_led_string((const char *)mem, size - 1);
 		else {
 			AFB_REQ_ERROR(req, "unexpected type %s", afb_type_name(type));
 			sts = AFB_ERRNO_INVALID_REQUEST;
@@ -285,13 +302,15 @@ static void edge_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *para
 
 	if (nparams > 0) {
 		/* interpret first parameter */
+		size_t size;
+		void *mem;
 		afb_data_t arg0 = params[0];
-		const void *mem = afb_data_ro_pointer(arg0);
 		afb_type_t type = afb_data_type(arg0);
-		if (type == AFB_PREDEFINED_TYPE_STRINGZ)
-			set_edge_string((const char *)mem);
-		else if (type == AFB_PREDEFINED_TYPE_JSON)
-			set_edge_string((const char *)mem);
+		afb_data_get_constant(arg0, &mem, &size);
+		if (type == AFB_PREDEFINED_TYPE_STRINGZ && size > 0)
+			set_edge_string((const char *)mem, size - 1);
+		else if (type == AFB_PREDEFINED_TYPE_JSON && size > 0)
+			set_edge_string((const char *)mem, size - 1);
 		else {
 			AFB_REQ_ERROR(req, "unexpected type %s", afb_type_name(type));
 			sts = AFB_ERRNO_INVALID_REQUEST;
@@ -342,13 +361,15 @@ static void events_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *pa
 
 	if (nparams > 0) {
 		/* interpret first parameter */
+		size_t size;
+		void *mem;
 		afb_data_t arg0 = params[0];
-		const void *mem = afb_data_ro_pointer(arg0);
 		afb_type_t type = afb_data_type(arg0);
-		if (type == AFB_PREDEFINED_TYPE_STRINGZ)
-			set_events_string(req, (const char *)mem);
-		else if (type == AFB_PREDEFINED_TYPE_JSON)
-			set_events_string(req, (const char *)mem);
+		afb_data_get_constant(arg0, &mem, &size);
+		if (type == AFB_PREDEFINED_TYPE_STRINGZ && size > 0)
+			set_events_string(req, (const char *)mem, size - 1);
+		else if (type == AFB_PREDEFINED_TYPE_JSON && size > 0)
+			set_events_string(req, (const char *)mem, size - 1);
 		else {
 			AFB_REQ_ERROR(req, "unexpected type %s", afb_type_name(type));
 			sts = AFB_ERRNO_INVALID_REQUEST;
