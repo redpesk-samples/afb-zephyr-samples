@@ -10,7 +10,7 @@
  */
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(net_dhcpv4_client_sample, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(dhcpv4_client, LOG_LEVEL_DBG);
 
 #include <zephyr/kernel.h>
 #include <zephyr/linker/sections.h>
@@ -45,7 +45,7 @@ static void handler(struct net_mgmt_event_callback *cb,
 		    uint32_t mgmt_event,
 		    struct net_if *iface)
 {
-	int i = 0;
+	int i = 0, n = 0;
 
 	if (mgmt_event != NET_EVENT_IPV4_ADDR_ADD) {
 		return;
@@ -73,8 +73,12 @@ static void handler(struct net_mgmt_event_callback *cb,
 						 buf, sizeof(buf)));
 		LOG_INF("Lease time[%d]: %u seconds", net_if_get_by_iface(iface),
 			iface->config.dhcpv4.lease_time);
+		n++;
 	}
-	k_sem_give(&synchro);
+	if (n)
+		k_sem_give(&synchro);
+	else
+		LOG_INF("!!no address!!");
 }
 
 static void option_handler(struct net_dhcpv4_option_callback *cb,
@@ -106,4 +110,6 @@ void init_dhcp(bool wait)
 
 	if (wait)
 		k_sem_take(&synchro, K_FOREVER);
+
+	LOG_INF("Done dhcpv4 client");
 }
