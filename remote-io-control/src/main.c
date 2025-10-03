@@ -34,6 +34,53 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(SW0_NODE, gpios);
 static struct gpio_callback button_cb_data;
 
 /******************************************************************/
+/*** TLS setting                                                ***/
+/******************************************************************/
+/* configure TLS */
+#if CONFIG_AFB_ZEPHYR_MBEDTLS
+   static uint8_t trust[] = {
+#    include "trust.h"
+   };
+#  if MTLS
+     static uint8_t cert[] = {
+#      include "cert.h"
+     };
+     static uint8_t key[] = {
+#      include "key.h"
+     };
+#    define TLS "mtls+"
+#  else
+#    define TLS "tls+"
+#  endif /* MTLS */
+#else
+#  define TLS ""
+#endif /* CONFIG_AFB_ZEPHYR_MBEDTLS */
+
+/******************************************************************/
+/*** permission check setting                                   ***/
+/******************************************************************/
+#if !defined(CHECK_PERM)
+#  define CHECK_PERM 0
+#endif
+
+#if CHECK_PERM
+
+/* configure the server IP */
+#  if !defined(PREM_CHECK_IP)
+#    define PREM_CHECK_IP "192.168.0.34"
+//#    define PREM_CHECK_IP "10.18.127.169"
+#  endif
+
+/* configure the server port */
+#  if !defined(PREM_CHECK_PORT)
+#    define PREM_CHECK_PORT "4444"
+#  endif
+
+static const char perm_check_url[] =
+	TLS"tcp:"PREM_CHECK_IP":"PREM_CHECK_PORT"/perm";
+#endif
+
+/******************************************************************/
 /*** declaration of APIs following afb-binding interface	***/
 /*** see https://docs.redpesk.bzh/docs/en/master/developer-guides/reference-v4/ */
 /******************************************************************/
@@ -381,15 +428,56 @@ static void events_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *pa
 	afb_req_reply(req, sts, 0, NULL);
 }
 
-/* static declaration of the verbs.
+#if CHECK_PERM
+/* set the loa to the given value for the requester */
+static void reqloa(afb_req_t req, unsigned loa)
+{
+	RP_DEBUG("REQLOA %u", loa);
+	afb_req_session_set_LOA(req, loa);
+	afb_req_reply(req, 0, 0, NULL);
+}
+
+static void logoff_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *params)
+{
+	RP_DEBUG("LOGOFF");
+	reqloa(req, 0);
+}
+
+static void on_perm_cb(void *closure, int status, afb_req_t req)
+{
+	RP_DEBUG("ONPERM %d", status);
+	reqloa(req, status > 0 ? 2 : 1);
+}
+
+static void login_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *params)
+{
+	RP_DEBUG("LOGIN");
+	afb_req_check_permission(req, "urn:redpesk:zephyr:partner:writer", on_perm_cb, NULL);
+}
+#endif
+
+
+/*
+ * static declaration of the verbs.
  * here two : blinky, switch_event
  */
+#if CHECK_PERM
+#  define CAN_READ   .session=AFB_SESSION_LOA_1
+#  define CAN_WRITE  .session=AFB_SESSION_LOA_2
+#else
+#  define CAN_READ   .session=AFB_SESSION_NONE
+#  define CAN_WRITE  .session=AFB_SESSION_NONE
+#endif
 static const afb_verb_t desc_verbs[] = {
-	{ .verb = "led",    .callback = led_verb_cb },
-	{ .verb = "button", .callback = button_verb_cb },
-	{ .verb = "edge",   .callback = edge_verb_cb },
-	{ .verb = "state",  .callback = state_verb_cb },
-	{ .verb = "events", .callback = events_verb_cb },
+	{ .verb = "led",    .callback = led_verb_cb,     CAN_WRITE },
+	{ .verb = "button", .callback = button_verb_cb,  CAN_WRITE },
+	{ .verb = "edge",   .callback = edge_verb_cb,    CAN_WRITE },
+	{ .verb = "state",  .callback = state_verb_cb,   CAN_READ },
+	{ .verb = "events", .callback = events_verb_cb,  CAN_READ },
+#if CHECK_PERM
+	{ .verb = "login",  .callback = login_verb_cb,   .session = AFB_SESSION_CHECK },
+	{ .verb = "logoff", .callback = logoff_verb_cb },
+#endif
 	{ .verb = NULL }
 };
 
@@ -413,6 +501,26 @@ void start()
 	/* show step */
 	RP_INFO("Entering start");
 
+#if CONFIG_AFB_ZEPHYR_MBEDTLS
+	rc = zafb_tls_add_trust_list(trust, sizeof trust);
+	if (rc < 0)
+		RP_CRITICAL("not able to set trusted certificate(s): %d", rc);
+#  if MTLS
+	rc = zafb_tls_set_certificate(cert, sizeof cert);
+	if (rc < 0)
+		RP_CRITICAL("not able to set certificate: %d", rc);
+	rc = zafb_tls_set_private_key(key, sizeof key);
+	if (rc < 0)
+		RP_CRITICAL("not able to set private key: %d", rc);
+#  endif
+#endif
+#if CHECK_PERM
+	/* add permission checker */
+	RP_INFO("Adding permission checker ...");
+	rc = zafb_add_rpc_client(perm_check_url);
+	if (rc < 0)
+		RP_ERROR("creation of permission checker failed: %d", rc);
+#endif
 	/* declaration of APIs */
 	RP_INFO("Adding API ...");
 	rc = zafb_binding_add(&api, &tuto_desc_api);
