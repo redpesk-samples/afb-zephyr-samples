@@ -336,13 +336,16 @@ static void edge_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *para
 /* state verb callback */
 static void state_verb_cb(afb_req_t req, unsigned nparams, afb_data_t const *params)
 {
+	int rc, len;
 	char buffer[100];
-	int len = snprintf(buffer, sizeof buffer, "{\"led\":\"%s\",\"button\":\"%s\",\"edge\":\"%s\"}",
+	afb_data_t reply = NULL;
+
+	len = snprintf(buffer, sizeof buffer,
+			"{\"led\":\"%s\",\"button\":\"%s\",\"edge\":\"%s\"}",
 				get_led() ? "on" : "off",
 				get_button() ? "down" : "up",
-				edge == edge_falling ? "falling" : edge == edge_rising ? "rising" : "any");
-	int rc;
-	afb_data_t reply = NULL;
+				edge == edge_falling ? "falling" :
+					edge == edge_rising ? "rising" : "any");
 
 	if (len < 0)
 		rc = AFB_ERRNO_INTERNAL_ERROR;
