@@ -1,5 +1,7 @@
 #!/bin/bash
 
+base=$(realpath $(dirname $0))
+
 unset $BOARD
 unset $ZEPHYR_PATH
 unset $SDK_PATH
@@ -8,6 +10,7 @@ print_param()
 {
     echo -e "\n\033[31mUsed parameters:\033[0m"
     echo -e "Target board:\t\t$BOARD"
+    echo -e "Target CPU:\t\t$CPU"
     echo -e "Zephyr path:\t\t$ZEPHYR_PATH"
     echo -e "Zephyr SDK path:\t$SDK_PATH"
     for i in {1..3}
@@ -41,9 +44,10 @@ while true; do
     esac
 done
 
-[ -z $BOARD ]        && BOARD="b_u585i_iot02a --shield link_board_eth"
-[ -z $ZEPHYR_PATH ]  && ZEPHYR_PATH="~/zephyrproject/zephyr"
-[ -z $SDK_PATH ]     && SDK_PATH="~/zephyr-sdk-0.16.8"
+[ -z "$BOARD" ]        && BOARD="b_u585i_iot02a --shield link_board_eth"
+[ -z "$CPU" ]          && CPU="STM32U585xx"
+[ -z "$ZEPHYR_PATH" ]  && ZEPHYR_PATH="$HOME/zephyrproject/zephyr"
+[ -z "$SDK_PATH" ]     && SDK_PATH="$HOME/zephyr-sdk-0.16.9"
 
 print_param
 
@@ -67,16 +71,24 @@ west build -b $BOARD -p always
 west build -t llext-edk
 cd ..
 
-tar xf sdk/build/zephyr/afb-sdk.tar.xz
 export LLEXT_EDK_INSTALL_DIR=$PWD/afb-sdk
 export ZEPHYR_SDK_INSTALL_DIR=$SDK_PATH
+export AFB_SDK_INSTALL_DIR=$base/afb-sdk
+
+tar xf sdk/build/zephyr/afb-sdk.tar.xz
+if [ "$(awk -F' = ' '/VERSION_MAJOR/ {print $2}' $ZEPHYR_PATH/VERSION)" -lt 4 ]; then
+	sed -i "s/^LLEXT_CFLAGS =/& -D$CPU /" afb-sdk/Makefile.cflags
+	sed -i "s/^set(LLEXT_CFLAGS /&-D$CPU;/" afb-sdk/cmake.cflags
+fi
 
 cd ext1
+rm -r build
 cmake -B build
 make -C build
 cd ..
 
 cd ext2
+rm -r build
 cmake -B build
 make -C build
 cd ..

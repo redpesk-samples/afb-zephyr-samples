@@ -18,8 +18,10 @@
  */
 #define LED0_NODE	DT_ALIAS(led0)
 //#define LED0_NODE DT_NODELABEL(red_led) // led 3
+#if defined(DT_NODE_HAS_STATUS_OKAY)
 #if !DT_NODE_HAS_STATUS_OKAY(LED0_NODE)
 #error "Unsupported board: led0 devicetree alias is not defined"
+#endif
 #endif
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
@@ -27,8 +29,10 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
  * Get button configuration from the devicetree sw0 alias. This is mandatory.
  */
 #define SW0_NODE	DT_ALIAS(sw0)
+#if defined(DT_NODE_HAS_STATUS_OKAY)
 #if !DT_NODE_HAS_STATUS_OKAY(SW0_NODE)
 #error "Unsupported board: sw0 devicetree alias is not defined"
+#endif
 #endif
 static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(SW0_NODE, gpios);
 static struct gpio_callback button_cb_data;
