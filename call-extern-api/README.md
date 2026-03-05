@@ -29,7 +29,7 @@ binder and the binding tutorial hello4. Here are the step to follow.
    https://github.com/redpesk-core/afb-binding in some directory `DIR`
 3. Compile the tutorial hello4: `make -C DIR/tutorials/v4 hello4.so`
 4. Run the binder using the command:
-   `afb-binder -b DIR/tutorials/v4/hello4.so -v --rpc-server=tcp:*:4444/hello --tracereq=common`
+   `afb-binder -b DIR/tutorials/v4/hello4.so -v --rpc-server=tcp:*:5555/hello --tracereq=common`
 
 A typical output of zephyr logs is:
 

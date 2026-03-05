@@ -24,7 +24,12 @@
 
 /* configure the server port */
 #if !defined(SERVER_PORT)
-#define SERVER_PORT "4444"
+#define SERVER_PORT "5555"
+#endif
+
+/* configure the external API name */
+#if !defined(EXTERN_APINAME)
+#define EXTERN_APINAME "hello"
 #endif
 
 /* configure the led */
@@ -132,7 +137,7 @@ void timer_cb(afb_timer_t timer, void *closure, unsigned decount)
 	data[1] = afb_data_addref(counter_data);
 
 	/* send the request to the server */
-	afb_api_call(zafb_root_api(), "extern", "ping", 2, data,
+	afb_api_call(zafb_root_api(), EXTERN_APINAME, "ping", 2, data,
 #if IGNORE_RESPONSE
 			NULL, NULL);
 #else
@@ -196,7 +201,7 @@ void start(int signum, void* arg)
 #endif
 
 	/* create the client link */
-	rc = zafb_add_rpc_client(TLS"tcp:"SERVER_IP":"SERVER_PORT"/extern?host");
+	rc = zafb_add_rpc_client(TLS"tcp:"SERVER_IP":"SERVER_PORT"/"EXTERN_APINAME"?host");
 	if (rc < 0) {
 		RP_CRITICAL("not able to create the data for counter: %d", rc);
 		zafb_exit(rc);
