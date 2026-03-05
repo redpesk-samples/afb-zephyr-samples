@@ -31,6 +31,12 @@ binder and the binding tutorial hello4. Here are the step to follow.
 4. Run the binder using the command:
    `afb-binder -b DIR/tutorials/v4/hello4.so -v --rpc-server=tcp:*:5555/hello --tracereq=common`
 
+When TLS is active, run the command
+   `afb-binder -b DIR/tutorials/v4/hello4.so -v --rpc-server=tls+tcp:*:5555/hello --tracereq=common --tls-cert=src/cert.pem --tls-key=src/key.pem`
+
+When mTLS is active, run the command
+   `afb-binder -b DIR/tutorials/v4/hello4.so -v --rpc-server=mtls+tcp:*:5555/hello --tracereq=common --tls-cert=src/cert.pem --tls-key=src/key.pem --tls-trust=src/cert.pem`
+
 A typical output of zephyr logs is:
 
 ```
